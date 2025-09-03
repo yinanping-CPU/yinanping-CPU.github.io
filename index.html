@@ -268,6 +268,128 @@
             background: #041f8c;
         }
         
+        /* AI聊天窗口样式 */
+        .ai-chat-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+        
+        .ai-chat-container.minimized {
+            height: 60px;
+        }
+        
+        .ai-chat-header {
+            background: linear-gradient(to right, #0134ff, #00bbff);
+            color: white;
+            padding: 15px;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .ai-chat-header h3 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ai-chat-header .chat-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .ai-chat-header button {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .ai-chat-window {
+            background: rgba(255, 255, 255, 0.95);
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .ai-chat-messages {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .ai-message {
+            align-self: flex-start;
+            background: rgba(1, 52, 255, 0.1);
+            border-bottom-left-radius: 5px;
+        }
+        
+        .user-message {
+            align-self: flex-end;
+            background: rgba(221, 1, 255, 0.1);
+            border-bottom-right-radius: 5px;
+        }
+        
+        .ai-chat-input {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+        
+        .ai-chat-input input {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50px;
+            outline: none;
+        }
+        
+        .ai-chat-input button {
+            margin-left: 10px;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(to right, #0134ff, #00bbff);
+            color: white;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .ai-chat-input button:hover {
+            transform: scale(1.05);
+        }
+        
+        .minimized .ai-chat-window {
+            display: none;
+        }
+        
         /* 动画定义 */
         @keyframes fadeIn {
             from {
@@ -333,6 +455,12 @@
             
             .hero p {
                 font-size: 1.2rem;
+            }
+            
+            .ai-chat-container {
+                width: 300px;
+                right: 10px;
+                bottom: 10px;
             }
         }
     </style>
@@ -425,6 +553,28 @@
         <p>&copy;  意难平 - 开源广场 | 保留所有权利</p>
     </footer>
 
+    <!-- AI聊天窗口 -->
+    <div class="ai-chat-container">
+        <div class="ai-chat-header" id="chatHeader">
+            <h3><i class="fas fa-robot"></i> AI助手</h3>
+            <div class="chat-controls">
+                <button id="minimizeChat"><i class="fas fa-minus"></i></button>
+                <button id="closeChat"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="ai-chat-window">
+            <div class="ai-chat-messages" id="chatMessages">
+                <div class="message ai-message">
+                    您好！我是您的AI助手，有什么可以帮您的吗？
+                </div>
+            </div>
+            <div class="ai-chat-input">
+                <input type="text" id="messageInput" placeholder="输入您的问题...">
+                <button id="sendMessage"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 添加滚动动画效果
         document.addEventListener('DOMContentLoaded', function() {
@@ -454,6 +604,133 @@
                     navLinks.forEach(l => l.classList.remove('active'));
                     this.classList.add('active');
                 });
+            });
+            
+            // AI聊天功能
+            const chatContainer = document.querySelector('.ai-chat-container');
+            const chatHeader = document.getElementById('chatHeader');
+            const chatMessages = document.getElementById('chatMessages');
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendMessage');
+            const minimizeButton = document.getElementById('minimizeChat');
+            const closeButton = document.getElementById('closeChat');
+            
+            let isMinimized = false;
+            
+            // 添加消息到聊天窗口
+            function addMessage(message, isUser = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = isUser ? 'message user-message' : 'message ai-message';
+                messageDiv.textContent = message;
+                
+                chatMessages.appendChild(messageDiv);
+                
+                // 滚动到底部
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            // AI回复逻辑
+            function getAIResponse(message) {
+                const lowerMessage = message.toLowerCase();
+                
+                if (lowerMessage.includes('你好') || lowerMessage.includes('嗨') || lowerMessage.includes('hello')) {
+                    return '您好！很高兴为您提供帮助。';
+                } else if (lowerMessage.includes('开源') || lowerMessage.includes('项目')) {
+                    return '本站分享各种开源项目，包括STM32、Web开发、机器学习等领域。您有什么特别感兴趣的方向吗？';
+                } else if (lowerMessage.includes('联系') || lowerMessage.includes('方式')) {
+                    return '您可以通过页面底部的社交媒体链接联系我。';
+                } else if (lowerMessage.includes('技术') || lowerMessage.includes('开发')) {
+                    return '本站主要关注嵌入式开发、Web前端和后端技术。您想了解哪方面的内容？';
+                } else if (lowerMessage.includes('谢谢') || lowerMessage.includes('感谢')) {
+                    return '不客气！很高兴能为您提供帮助。还有其他问题吗？';
+                } else if (lowerMessage.includes('stm32')) {
+                    return 'STM32是一款非常流行的ARM Cortex-M内核微控制器。本站有一些基于STM32的开源项目，您可以在项目页面找到它们。';
+                } else {
+                    // 默认回复
+                    const randomResponses = [
+                        '很有趣的问题！我能为您提供哪些更具体的信息？',
+                        '我正在学习如何更好地回答这个问题，您能换种方式提问吗？',
+                        '让我想想如何回答这个问题...您能提供更多细节吗？',
+                        '这个问题很有意思！本站可能有相关项目或文章，您需要我帮您查找吗？',
+                        '我目前的能力还有限，但我会尽力为您提供帮助。您能问得更具体一些吗？'
+                    ];
+                    return randomResponses[Math.floor(Math.random() * randomResponses.length)];
+                }
+            }
+            
+            // 发送消息处理
+            function sendMessage() {
+                const message = messageInput.value.trim();
+                if (message) {
+                    addMessage(message, true);
+                    messageInput.value = '';
+                    
+                    // 模拟AI思考时间
+                    setTimeout(() => {
+                        const response = getAIResponse(message);
+                        addMessage(response);
+                    }, 1000);
+                }
+            }
+            
+            // 切换聊天窗口状态
+            function toggleChat() {
+                isMinimized = !isMinimized;
+                if (isMinimized) {
+                    chatContainer.classList.add('minimized');
+                    minimizeButton.innerHTML = '<i class="fas fa-plus"></i>';
+                } else {
+                    chatContainer.classList.remove('minimized');
+                    minimizeButton.innerHTML = '<i class="fas fa-minus"></i>';
+                }
+            }
+            
+            // 事件监听
+            sendButton.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            minimizeButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleChat();
+            });
+            
+            closeButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                chatContainer.style.display = 'none';
+                
+                // 可以添加一个浮动按钮来重新打开聊天窗口
+                const reopenButton = document.createElement('div');
+                reopenButton.innerHTML = '<i class="fas fa-comment"></i>';
+                reopenButton.style.position = 'fixed';
+                reopenButton.style.bottom = '20px';
+                reopenButton.style.right = '20px';
+                reopenButton.style.width = '60px';
+                reopenButton.style.height = '60px';
+                reopenButton.style.borderRadius = '50%';
+                reopenButton.style.background = 'linear-gradient(to right, #0134ff, #00bbff)';
+                reopenButton.style.color = 'white';
+                reopenButton.style.display = 'flex';
+                reopenButton.style.alignItems = 'center';
+                reopenButton.style.justifyContent = 'center';
+                reopenButton.style.cursor = 'pointer';
+                reopenButton.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.2)';
+                reopenButton.style.zIndex = '999';
+                reopenButton.addEventListener('click', function() {
+                    chatContainer.style.display = 'flex';
+                    this.remove();
+                });
+                
+                document.body.appendChild(reopenButton);
+            });
+            
+            chatHeader.addEventListener('click', function() {
+                if (isMinimized) {
+                    toggleChat();
+                }
             });
         });
     </script>
